@@ -1,42 +1,51 @@
+
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-from google import genai
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser
+from langchain.agents import create_agent
 
 load_dotenv()
 
+
+# 1. Define the expected response structure
 class ResearchResponse(BaseModel):
     topic: str
     summary: str
     sources: list[str]
     tools_used: list[str]
 
-# llm = ChatOpenAI()
-llm = genai.Client()
-parser = PydanticOutputParser(pydantic_object=ResearchResponse)
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """
-            You are a research assistant that will help generate a research paper.
-            Answer the user query and use necessary tools.
-            Wrap the output in this format and provide no other text\n{format_instructions}
-            """,
-        ),
-        ("placeholder","{chat_history}"),
-        ("human","{query}"),
-        {"placeholder","{agent_scratchpad}"}
-    ]
-).partial(format_instructions=parser.get_format_instructions())
-
-interaction = llm.interactions.create(
-    model="gemini-flash-latest",
-    input="Explain how AI works in a few words"
+# 2. Create the agent
+agent = create_agent(
+    model="google_genai:gemini-flash-latest",
+    tools=[],
+    system_prompt=(
+        "You are a research assistant that helps generate research papers. "
+        "Answer the user's query clearly and accurately. "
+        "Include sources only when you can identify them reliably. "
+        "List tools actually used; do not claim to use tools that were not used."
+    ),
+    response_format=ResearchResponse,
 )
 
-print(interaction.output_text)
+
+# 3. Run the agent
+result = agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "What is the capital of the UAE?",
+            }
+        ]
+    }
+)
+
+
+# 4. Access the validated Pydantic response
+research = result["structured_response"]
+
+print(research)
+# print(research.topic)
+# print(research.summary)
+# print(research.sources)
+# print(research.tools_used)
