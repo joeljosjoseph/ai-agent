@@ -2,6 +2,7 @@
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from langchain.agents import create_agent
+from tools import tools
 
 load_dotenv()
 
@@ -14,10 +15,11 @@ class ResearchResponse(BaseModel):
     tools_used: list[str]
 
 
+
 # 2. Create the agent
 agent = create_agent(
     model="google_genai:gemini-flash-latest",
-    tools=[],
+    tools=tools,
     system_prompt=(
         "You are a research assistant that helps generate research papers. "
         "Answer the user's query clearly and accurately. "
@@ -27,14 +29,14 @@ agent = create_agent(
     response_format=ResearchResponse,
 )
 
-
+query = input("What can I help you research?\n")
 # 3. Run the agent
 result = agent.invoke(
     {
         "messages": [
             {
                 "role": "user",
-                "content": "What is the capital of the UAE?",
+                "content": query,
             }
         ]
     }
@@ -49,3 +51,5 @@ print(research)
 # print(research.summary)
 # print(research.sources)
 # print(research.tools_used)
+
+
